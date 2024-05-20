@@ -1,0 +1,44 @@
+<script type="text/javascript">
+
+    // エンドポイントURLとAPIキー
+    const endpointUrl = 'https://XXXXX.execute-api.XXXXX.amazonaws.com/minecraft/controlEC2/optinstance';
+    const apiKey = 'XXXXXXXXXXXXXXXXXXXXX';
+
+    // リクエストヘッダーとボディ
+    const headers = {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey
+    };
+
+
+    // POSTリクエストを送信する関数
+    async function sendPostRequest(url, headers) {
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: headers,
+            });
+
+            if (!response.ok) {
+                console.log("立ち上げに失敗しました。")
+                throw new Error(`HTTP error! Status: ${response}`);
+            }
+
+            const responseData = await response.json();
+            console.log('Response data:', responseData);
+        } catch (error) {
+            console.error('マイクラ鯖立ち上げ時エラー:', error);
+        }
+    }
+
+    function optInstance(actionType) {
+        const sendUrl = endpointUrl.concat("?action=", actionType)
+       
+        sendPostRequest(sendUrl, headers)
+    }
+
+</script>
+
+<h1>ワンクリック鯖操作ツール</h1>
+<button onclick="optInstance('start')">マイクラ鯖を立ち上げる</button>
+<button onclick="optInstance('stop')">マイクラ鯖を止める</button>
