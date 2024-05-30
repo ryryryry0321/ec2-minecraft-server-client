@@ -1,8 +1,8 @@
 <script type="text/javascript">
 
     // エンドポイントURLとAPIキー
-    const endpointUrl = 'https://XXXXX.execute-api.XXXXX.amazonaws.com/minecraft/controlEC2/optinstance';
-    const apiKey = 'XXXXXXXXXXXXXXXXXXXXX';
+    const endpointUrl = 'https://XXXXXXX.execute-api.ap-northeast-1.amazonaws.com/minecraft/controlEC2/';
+    const apiKey = 'XXXXXXXXXX';
 
     // リクエストヘッダーとボディ
     const headers = {
@@ -10,31 +10,43 @@
         'x-api-key': apiKey
     };
 
-
-    // POSTリクエストを送信する関数
-    async function sendPostRequest(url, headers) {
+    // Httpリクエストを送信する関数
+    async function sendRequest(url, headers, method) {
         try {
             const response = await fetch(url, {
-                method: 'POST',
+                method: method,
                 headers: headers,
             });
 
             if (!response.ok) {
-                console.log("立ち上げに失敗しました。")
+                console.log("APIリクエスト失敗")
                 throw new Error(`HTTP error! Status: ${response}`);
             }
 
             const responseData = await response.json();
             console.log('Response data:', responseData);
         } catch (error) {
-            console.error('マイクラ鯖立ち上げ時エラー:', error);
+            console.error('リクエスト時エラー:', error);
         }
     }
-
+    // const sleep = (time) => new Promise((r) => setTimeout(r, time));//timeはミリ秒
     function optInstance(actionType) {
-        const sendUrl = endpointUrl.concat("?action=", actionType)
-       
-        sendPostRequest(sendUrl, headers)
+        const sendUrl = endpointUrl.concat("optinstance", "?action=", actionType)
+
+        if (actionType == 'start') {
+            console.log("サーバーを起動中...")
+            console.log('起動後の初期化には５分ほどかかるので、その後に繋いでみてください。')
+        } else {
+            console.log("サーバーを停止中")
+        }
+
+        sendRequest(sendUrl, headers, 'POST')
+    }
+
+    function getInstanceInfo() {
+        const sendUrl = endpointUrl.concat("getec2info")
+        console.log("サーバー情報を取得中...")
+        sendRequest(sendUrl, headers, 'GET')
     }
 
 </script>
@@ -42,3 +54,4 @@
 <h1>ワンクリック鯖操作ツール</h1>
 <button onclick="optInstance('start')">マイクラ鯖を立ち上げる</button>
 <button onclick="optInstance('stop')">マイクラ鯖を止める</button>
+<button onclick="getInstanceInfo()">鯖情報を取得する</button>
