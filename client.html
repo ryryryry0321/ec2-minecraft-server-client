@@ -1,57 +1,106 @@
-<script type="text/javascript">
+<!DOCTYPE html>
 
-    // エンドポイントURLとAPIキー
-    const endpointUrl = 'https://XXXXXXX.execute-api.ap-northeast-1.amazonaws.com/minecraft/controlEC2/';
-    const apiKey = 'XXXXXXXXXX';
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz"
+        crossorigin="anonymous"></script>
 
-    // リクエストヘッダーとボディ
-    const headers = {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey
-    };
+    <script type="text/javascript">
 
-    // Httpリクエストを送信する関数
-    async function sendRequest(url, headers, method) {
-        try {
-            const response = await fetch(url, {
-                method: method,
-                headers: headers,
-            });
+        // TODO bootstrapの利用
+        // 応答メッセージにローディングアニメーションをつける
+        // res別にテキストを区別する
+        // response.OK == falseの時は「APIリクエストに失敗しました」にする
+        // エンドポイントURLとAPIキー
+        const endpointUrl = 'https://XXXXXXXXXX.execute-api.ap-northeast-1.amazonaws.com/minecraft/controlEC2/';
+        const apiKey = 'XXXXXXXXXXX';
 
-            if (!response.ok) {
-                console.log("APIリクエスト失敗")
-                throw new Error(`HTTP error! Status: ${response}`);
+        // リクエストヘッダーとボディ
+        const headers = {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey
+        };
+
+        const htmlMessages = {
+            starting: '<p>サーバーを起動中...</p><p class="spinner-border text-success" role="status" style="margin-left: 10px"></p>',
+            stopping: '<p>サーバーを停止中...</p><p class="spinner-border text-danger" role="status" style="margin-left: 10px"></p>',
+            gettingInfo: '<p>サーバー情報を取得中...</p><p class="spinner-border text-primary" role="status" style="margin-left: 10px"></p>',
+            failedToFetch: '<p>APIリクエストに失敗しました</p>',
+            invaildParam: '<p>不正なリクエストパラムを検出しました</p>'
+        }
+    
+        // Httpリクエストを送信する関数
+        async function sendRequest(url, headers, method) {
+            let responseToHtml = htmlMessages.failedToFetch
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: headers,
+                });
+
+                // throwされればここで処理はストップ
+                if (!response.ok) {
+                    console.log("APIリクエスト失敗")
+                    throw new Error(`HTTP error! Status: ${response}`);
+                }
+
+                const responseData = await response.json();
+                console.log('Response data:', responseData);
+                
+                responseToHtml = '<p>APIからの応答:'.concat(responseData, '</p>');
+                
+                updateResponseMessage(responseToHtml)
+            } catch (error) {
+                console.error('リクエスト時エラー:', error);
+            }
+        }
+
+        function optInstance(actionType) {
+            if (actionType == 'start') {
+                updateResponseMessage(htmlMessages.starting)
+            } else if(actionType == 'stop') {
+                updateResponseMessage(htmlMessages.stopping)
+            }else{
+                // リクエストパラムの時点で間違ってたらAPIリクエストはしない
+                updateResponseMessage(htmlMessages.invaildParam)
+                return
             }
 
-            const responseData = await response.json();
-            console.log('Response data:', responseData);
-        } catch (error) {
-            console.error('リクエスト時エラー:', error);
-        }
-    }
-    // const sleep = (time) => new Promise((r) => setTimeout(r, time));//timeはミリ秒
-    function optInstance(actionType) {
-        const sendUrl = endpointUrl.concat("optinstance", "?action=", actionType)
+            const sendUrl = endpointUrl.concat("optinstance", "?action=", actionType)
 
-        if (actionType == 'start') {
-            console.log("サーバーを起動中...")
-            console.log('起動後の初期化には５分ほどかかるので、その後に繋いでみてください。')
-        } else {
-            console.log("サーバーを停止中")
+            sendRequest(sendUrl, headers, 'POST')
         }
 
-        sendRequest(sendUrl, headers, 'POST')
-    }
+        function getInstanceInfo() {
+            updateResponseMessage(htmlMessages.gettingInfo)
+            const sendUrl = endpointUrl.concat("getec2info")
+            
+            sendRequest(sendUrl, headers, 'GET')
+        }
 
-    function getInstanceInfo() {
-        const sendUrl = endpointUrl.concat("getec2info")
-        console.log("サーバー情報を取得中...")
-        sendRequest(sendUrl, headers, 'GET')
-    }
+        // メッセージを操作、APIの応答によって書き換え
+        function updateResponseMessage(html){
+            document.getElementById('pushed-response').innerHTML = html
+        }
+    </script>
+</head>
 
-</script>
+<body>
+    <div class="main-content" style="text-align: center">
+        <h1>Minecraftサーバー操作ツール</h1>
+        <p id="subtitle" style="margin-top:40px">サーバレスにAWS EC2を操作するローコストツール</p>
+        <button type="button" class="btn btn-success" onclick="optInstance('start')">マイクラ鯖を立ち上げる</button>
+        <button type="button" class="btn btn-danger" onclick="optInstance('stop')">マイクラ鯖を止める</button>
+        <button type="button" class="btn btn-primary" onclick="getInstanceInfo()">鯖情報を取得する</button>
 
-<h1>ワンクリック鯖操作ツール</h1>
-<button onclick="optInstance('start')">マイクラ鯖を立ち上げる</button>
-<button onclick="optInstance('stop')">マイクラ鯖を止める</button>
-<button onclick="getInstanceInfo()">鯖情報を取得する</button>
+        <div id="pushed-response" style="display: flex; justify-content: center; align-items: center; margin-top: 25px;"></div>
+    </div>
+</body>
+
+</html>
